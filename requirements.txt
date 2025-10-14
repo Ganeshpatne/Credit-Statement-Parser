@@ -1,1 +1,5 @@
+flask
+pdfplumber
+pandas
+gunicorn     # optional for hosting
 
