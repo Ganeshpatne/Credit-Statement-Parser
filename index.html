@@ -1,170 +1,490 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Credit Card Statement Parser</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f7fa;
-      text-align: center;
-      padding: 40px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Statement Parser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    h1 {
-      color: #2d3436;
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-    form {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      display: inline-block;
-      margin-bottom: 30px;
-    }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
 
-    input[type="file"] {
-      margin: 15px;
-    }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
 
-    button {
-      background-color: #0984e3;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+        .upload-section {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
 
-    button:hover {
-      background-color: #74b9ff;
-    }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 20px;
+        }
 
-    table {
-      width: 60%;
-      margin: 20px auto;
-      border-collapse: collapse;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-    }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
 
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
 
-    th {
-      background-color: #0984e3;
-      color: white;
-    }
+        .file-input-label:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
 
-    tr:hover {background-color: #f1f1f1;}
+        .file-input-label.dragging {
+            background: #e0e7ff;
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
 
-    .hidden {
-      display: none;
-    }
+        .file-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background: #667eea;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
 
-    #raw_preview {
-      background: #dfe6e9;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: left;
-      width: 60%;
-      margin: 20px auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
+        .file-icon::before {
+            content: 'PDF';
+        }
 
-    #show_raw_btn {
-      margin-top: 15px;
-      background-color: #00b894;
-    }
+        .upload-text {
+            font-size: 1.1rem;
+            color: #495057;
+            margin-bottom: 8px;
+        }
 
-    #show_raw_btn:hover {
-      background-color: #55efc4;
-    }
-  </style>
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: #667eea;
+            font-weight: 600;
+            word-break: break-all;
+            padding: 10px;
+            background: #e0e7ff;
+            border-radius: 6px;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 10px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .results {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .result-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s ease;
+        }
+
+        .result-item:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .result-value {
+            color: #212529;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .result-value.empty {
+            color: #adb5bd;
+            font-style: italic;
+        }
+
+        .error {
+            display: none;
+            background: #fff5f5;
+            color: #c53030;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #c53030;
+            font-weight: 500;
+        }
+
+        .error::before {
+            content: 'Error: ';
+            font-weight: 700;
+        }
+
+        .preview {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .preview h3 {
+            color: #495057;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .preview pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+            color: #6c757d;
+            line-height: 1.5;
+            font-family: 'Courier New', monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
+
+            .upload-section, .results {
+                padding: 20px;
+            }
+
+            .file-input-label {
+                padding: 30px 20px;
+            }
+
+            .result-item {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .result-value {
+                text-align: left;
+            }
+
+            .upload-text {
+                font-size: 1rem;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .preview::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .preview::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .preview::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .preview::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
 </head>
 <body>
-  <h1>Credit Card Statement Parser</h1>
+    <div class="container">
+        <h1>Credit Card Statement Parser</h1>
+        
+        <div class="upload-section">
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".pdf" required>
+                    <label for="fileInput" class="file-input-label" id="fileLabel">
+                        <div>
+                            <div class="file-icon"></div>
+                            <div class="upload-text">Click or drag & drop your PDF statement here</div>
+                            <div class="upload-subtext">Supports credit card statements in PDF format</div>
+                            <div class="file-name" id="fileName" style="display: none;"></div>
+                        </div>
+                    </label>
+                </div>
+                <button type="submit" id="submitBtn">Parse Statement</button>
+            </form>
 
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="file" accept=".pdf" required />
-    <br />
-    <button type="submit">Upload & Parse</button>
-  </form>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p class="loading-text">Processing your statement...</p>
+            </div>
 
-  <!-- Parsed Table -->
-  <table id="resultTable" class="hidden">
-    <tr>
-      <th>Field</th>
-      <th>Value</th>
-    </tr>
-    <tr>
-      <td>Card Last 4</td>
-      <td id="card_last_4">-</td>
-    </tr>
-    <tr>
-      <td>Card Type</td>
-      <td id="card_type">-</td>
-    </tr>
-    <tr>
-      <td>Billing Cycle</td>
-      <td id="billing_cycle">-</td>
-    </tr>
-    <tr>
-      <td>Payment Due Date</td>
-      <td id="due_date">-</td>
-    </tr>
-    <tr>
-      <td>Total Amount</td>
-      <td id="total_amount">-</td>
-    </tr>
-    <tr>
-      <td>Parsed On</td>
-      <td id="parsed_on">-</td>
-    </tr>
-  </table>
+            <div class="error" id="error"></div>
+        </div>
 
-  <!-- Raw Preview -->
-  <button id="show_raw_btn" class="hidden" onclick="document.getElementById('raw_preview').classList.toggle('hidden')">Show Raw Preview</button>
-  <pre id="raw_preview" class="hidden"></pre>
+        <div class="results" id="results">
+            <h2>Extracted Information</h2>
+            <div class="result-grid">
+                <div class="result-item">
+                    <span class="result-label">Card Type:</span>
+                    <span class="result-value" id="cardType">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Card Last 4 Digits:</span>
+                    <span class="result-value" id="cardLast4">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Billing Cycle:</span>
+                    <span class="result-value" id="billingCycle">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Due Date:</span>
+                    <span class="result-value" id="dueDate">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Total Amount Due:</span>
+                    <span class="result-value" id="totalAmount">-</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Minimum Payment:</span>
+                    <span class="result-value" id="minPayment">-</span>
+                </div>
+            </div>
+            <div class="preview">
+                <h3>Raw Text Preview</h3>
+                <pre id="rawPreview"></pre>
+            </div>
+        </div>
+    </div>
 
-  <script>
-    const form = document.getElementById('uploadForm');
-    const resultTable = document.getElementById('resultTable');
-    const showRawBtn = document.getElementById('show_raw_btn');
-    const rawPreview = document.getElementById('raw_preview');
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileLabel = document.getElementById('fileLabel');
+        const fileName = document.getElementById('fileName');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
+        // File input change handler
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileName.textContent = e.target.files[0].name;
+                fileName.style.display = 'block';
+            }
+        });
 
-      const response = await fetch('/parse', { method: 'POST', body: formData });
-      const data = await response.json();
+        // Drag and drop handlers
+        fileLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileLabel.classList.add('dragging');
+        });
 
-      // Show table
-      resultTable.classList.remove('hidden');
+        fileLabel.addEventListener('dragleave', () => {
+            fileLabel.classList.remove('dragging');
+        });
 
-      // Populate table fields
-      document.getElementById('card_last_4').textContent = data.card_last_4 || "-";
-      document.getElementById('card_type').textContent = data.card_type || "-";
-      document.getElementById('billing_cycle').textContent = data.billing_cycle || "-";
-      document.getElementById('due_date').textContent = data.due_date || "-";
-      document.getElementById('total_amount').textContent = data.total_amount || "-";
-      document.getElementById('parsed_on').textContent = data.parsed_on || "-";
+        fileLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileLabel.classList.remove('dragging');
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = e.dataTransfer.files[0].name;
+                fileName.style.display = 'block';
+            }
+        });
 
-      // Show raw preview button if available
-      if(data.raw_preview){
-        rawPreview.textContent = data.raw_preview;
-        showRawBtn.classList.remove('hidden');
-      } else {
-        showRawBtn.classList.add('hidden');
-        rawPreview.classList.add('hidden');
-      }
-    });
-  </script>
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            // Reset UI
+            error.style.display = 'none';
+            results.style.display = 'none';
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('/parse', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to parse statement');
+                }
+
+                // Display results
+                displayResults(data);
+                results.style.display = 'block';
+
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            document.getElementById('cardType').textContent = data.card_type || 'Not found';
+            document.getElementById('cardLast4').textContent = data.card_last_4 || 'Not found';
+            document.getElementById('billingCycle').textContent = data.billing_cycle || 'Not found';
+            document.getElementById('dueDate').textContent = data.due_date || 'Not found';
+            document.getElementById('totalAmount').textContent = data.total_amount ? `₹${data.total_amount}` : 'Not found';
+            document.getElementById('minPayment').textContent = data.minimum_payment ? `₹${data.minimum_payment}` : 'Not found';
+            document.getElementById('rawPreview').textContent = data.raw_preview || 'No preview available';
+
+            // Add empty class for styling
+            document.querySelectorAll('.result-value').forEach(el => {
+                if (el.textContent === 'Not found') {
+                    el.classList.add('empty');
+                } else {
+                    el.classList.remove('empty');
+                }
+            });
+        }
+    </script>
 </body>
 </html>
