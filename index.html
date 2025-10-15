@@ -1,1 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Credit Card Statement Parser</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #2d3436;
+    }
+
+    form {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+      margin-bottom: 30px;
+    }
+
+    input[type="file"] {
+      margin: 15px;
+    }
+
+    button {
+      background-color: #0984e3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #74b9ff;
+    }
+
+    table {
+      width: 60%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #0984e3;
+      color: white;
+    }
+
+    tr:hover {background-color: #f1f1f1;}
+
+    .hidden {
+      display: none;
+    }
+
+    #raw_preview {
+      background: #dfe6e9;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: left;
+      width: 60%;
+      margin: 20px auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    #show_raw_btn {
+      margin-top: 15px;
+      background-color: #00b894;
+    }
+
+    #show_raw_btn:hover {
+      background-color: #55efc4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Credit Card Statement Parser</h1>
+
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".pdf" required />
+    <br />
+    <button type="submit">Upload & Parse</button>
+  </form>
+
+  <!-- Parsed Table -->
+  <table id="resultTable" class="hidden">
+    <tr>
+      <th>Field</th>
+      <th>Value</th>
+    </tr>
+    <tr>
+      <td>Card Last 4</td>
+      <td id="card_last_4">-</td>
+    </tr>
+    <tr>
+      <td>Card Type</td>
+      <td id="card_type">-</td>
+    </tr>
+    <tr>
+      <td>Billing Cycle</td>
+      <td id="billing_cycle">-</td>
+    </tr>
+    <tr>
+      <td>Payment Due Date</td>
+      <td id="due_date">-</td>
+    </tr>
+    <tr>
+      <td>Total Amount</td>
+      <td id="total_amount">-</td>
+    </tr>
+    <tr>
+      <td>Parsed On</td>
+      <td id="parsed_on">-</td>
+    </tr>
+  </table>
+
+  <!-- Raw Preview -->
+  <button id="show_raw_btn" class="hidden" onclick="document.getElementById('raw_preview').classList.toggle('hidden')">Show Raw Preview</button>
+  <pre id="raw_preview" class="hidden"></pre>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const resultTable = document.getElementById('resultTable');
+    const showRawBtn = document.getElementById('show_raw_btn');
+    const rawPreview = document.getElementById('raw_preview');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      const response = await fetch('/parse', { method: 'POST', body: formData });
+      const data = await response.json();
+
+      // Show table
+      resultTable.classList.remove('hidden');
+
+      // Populate table fields
+      document.getElementById('card_last_4').textContent = data.card_last_4 || "-";
+      document.getElementById('card_type').textContent = data.card_type || "-";
+      document.getElementById('billing_cycle').textContent = data.billing_cycle || "-";
+      document.getElementById('due_date').textContent = data.due_date || "-";
+      document.getElementById('total_amount').textContent = data.total_amount || "-";
+      document.getElementById('parsed_on').textContent = data.parsed_on || "-";
+
+      // Show raw preview button if available
+      if(data.raw_preview){
+        rawPreview.textContent = data.raw_preview;
+        showRawBtn.classList.remove('hidden');
+      } else {
+        showRawBtn.classList.add('hidden');
+        rawPreview.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
 
