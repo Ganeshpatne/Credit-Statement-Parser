@@ -1,8 +1,39 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/app.py"
+      "src": "api/index.py",
+      "use": "@vercel/python"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }
+```
+
+**📁 Project Structure:**
+```
+your-project/
+├── api/
+│   └── index.py       (the code from the artifact)
+├── requirements.txt
+├── vercel.json
+└── .gitignore
+```
+
+**📄 .gitignore**
+```
+__pycache__/
+*.pyc
+.env
+.vercel
