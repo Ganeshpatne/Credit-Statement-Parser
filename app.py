@@ -1,15 +1,22 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import pdfplumber
+import PyPDF2
 import re
 from datetime import datetime
+import io
 
 app = Flask(__name__)
 CORS(app)
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    try:
+        return send_file('index.html')
+    except:
+        return """
+        <h1>Credit Card Statement Parser API</h1>
+        <p>POST your PDF to /parse endpoint</p>
+        """
 
 def extract_fields(text):
     """Extract key fields from credit card statement text"""
@@ -74,7 +81,6 @@ def extract_fields(text):
         r'Total\s+Amount\s+Due[:\s]*(?:Rs\.?|INR|₹)?\s*([\d,]+\.?\d*)',
         r'Amount\s+Due[:\s]*(?:Rs\.?|INR|₹)?\s*([\d,]+\.?\d*)',
         r'Total\s+Due[:\s]*(?:Rs\.?|INR|₹)?\s*([\d,]+\.?\d*)',
-        r'Minimum\s+Amount\s+Due[:\s]*(?:Rs\.?|INR|₹)?\s*([\d,]+\.?\d*)'
     ]
     for pattern in amount_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
@@ -120,14 +126,16 @@ def parse_statement():
         if not file.filename.lower().endswith('.pdf'):
             return jsonify({"error": "Only PDF files are supported"}), 400
         
-        # Extract text from PDF
+        # Extract text from PDF using PyPDF2
         text = ""
         try:
-            with pdfplumber.open(file) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"
+            pdf_file = io.BytesIO(file.read())
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
         except Exception as e:
             return jsonify({"error": f"Failed to read PDF: {str(e)}"}), 500
         
@@ -145,6 +153,9 @@ def parse_statement():
     
     except Exception as e:
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+# Vercel serverless handler
+app = app
 
 if __name__ == "__main__":
     app.run(debug=True)
